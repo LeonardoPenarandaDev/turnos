@@ -46,9 +46,16 @@
                             <div class="text-indigo-600 text-9xl font-black mb-6" id="turno-actual">
                                 {{ $turnoActual->codigo }}
                             </div>
-                            <p class="text-gray-500 text-2xl mb-6" id="nombre-actual">
+                            <p class="text-gray-500 text-2xl mb-2" id="nombre-actual">
                                 {{ $turnoActual->nombre_completo ?? '' }}
                             </p>
+                            <div class="mb-6" id="prioridad-actual">
+                                @if($turnoActual->prioridad === 'embarazada')
+                                    <span class="inline-flex items-center px-4 py-2 rounded-full text-lg font-semibold bg-pink-100 text-pink-800">🤰 Preferencial - Embarazada</span>
+                                @elseif($turnoActual->prioridad === 'tercera_edad')
+                                    <span class="inline-flex items-center px-4 py-2 rounded-full text-lg font-semibold bg-amber-100 text-amber-800">🧓 Preferencial - Adulto Mayor</span>
+                                @endif
+                            </div>
                             <div class="flex justify-center items-center space-x-8 text-gray-900">
                                 <div class="bg-indigo-100 rounded-xl px-8 py-4">
                                     <p class="text-gray-600 text-lg mb-1">Caja</p>
@@ -83,6 +90,11 @@
                             @foreach($ultimosTurnos as $turno)
                                 <div class="bg-white bg-opacity-20 rounded-xl p-6 text-center">
                                     <p class="text-5xl font-bold mb-2">{{ $turno->codigo }}</p>
+                                    @if($turno->prioridad === 'embarazada')
+                                        <p class="text-sm mb-1"><span class="bg-pink-500 text-white px-2 py-0.5 rounded-full">🤰 Preferencial</span></p>
+                                    @elseif($turno->prioridad === 'tercera_edad')
+                                        <p class="text-sm mb-1"><span class="bg-amber-500 text-white px-2 py-0.5 rounded-full">🧓 Preferencial</span></p>
+                                    @endif
                                     <p class="text-base opacity-80 mb-1">{{ $turno->nombre_completo ?? '' }}</p>
                                     <p class="text-lg opacity-90">Caja {{ $turno->caja?->numero ?? '-' }}</p>
                                 </div>
@@ -153,6 +165,18 @@
                     if (cajaActualEl) cajaActualEl.textContent = data.turnoActual.caja ? data.turnoActual.caja.numero : '-';
                     if (tramiteActualEl) tramiteActualEl.textContent = data.turnoActual.tipo_tramite ? data.turnoActual.tipo_tramite.nombre : '-';
 
+                    // Actualizar badge de prioridad
+                    const prioridadEl = document.getElementById('prioridad-actual');
+                    if (prioridadEl) {
+                        if (data.turnoActual.prioridad === 'embarazada') {
+                            prioridadEl.innerHTML = '<span class="inline-flex items-center px-4 py-2 rounded-full text-lg font-semibold bg-pink-100 text-pink-800">🤰 Preferencial - Embarazada</span>';
+                        } else if (data.turnoActual.prioridad === 'tercera_edad') {
+                            prioridadEl.innerHTML = '<span class="inline-flex items-center px-4 py-2 rounded-full text-lg font-semibold bg-amber-100 text-amber-800">🧓 Preferencial - Adulto Mayor</span>';
+                        } else {
+                            prioridadEl.innerHTML = '';
+                        }
+                    }
+
                     // Si la página muestra "en espera", recargar para mostrar el turno
                     if (!turnoActualEl) {
                         window.location.reload();
@@ -170,8 +194,15 @@
                     data.ultimosTurnos.forEach(turno => {
                         const div = document.createElement('div');
                         div.className = 'bg-white bg-opacity-20 rounded-xl p-6 text-center';
+                        let prioridadBadge = '';
+                        if (turno.prioridad === 'embarazada') {
+                            prioridadBadge = '<p class="text-sm mb-1"><span class="bg-pink-500 text-white px-2 py-0.5 rounded-full">🤰 Preferencial</span></p>';
+                        } else if (turno.prioridad === 'tercera_edad') {
+                            prioridadBadge = '<p class="text-sm mb-1"><span class="bg-amber-500 text-white px-2 py-0.5 rounded-full">🧓 Preferencial</span></p>';
+                        }
                         div.innerHTML = `
                             <p class="text-5xl font-bold mb-2">${turno.codigo}</p>
+                            ${prioridadBadge}
                             <p class="text-base opacity-80 mb-1">${turno.nombre_completo || ''}</p>
                             <p class="text-lg opacity-90">Caja ${turno.caja ? turno.caja.numero : '-'}</p>
                         `;

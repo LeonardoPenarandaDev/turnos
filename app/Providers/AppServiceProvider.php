@@ -29,7 +29,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Rate limiter para solicitud de turnos
         RateLimiter::for('turnos', function (Request $request) {
-            return Limit::perMinute(3)->by($request->ip());
+            return Limit::perMinute(50)->by($request->ip());
         });
 
         // Rate limiter para API pública

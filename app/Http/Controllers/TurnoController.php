@@ -42,6 +42,7 @@ class TurnoController extends Controller
                     'tipo_documento' => $validated['tipo_documento'],
                     'numero_documento' => $validated['numero_documento'],
                     'nombre_completo' => $validated['nombre_completo'],
+                    'prioridad' => $validated['prioridad'],
                     'tipo_tramite_id' => $validated['tipo_tramite_id'],
                     'estado' => 'pendiente',
                     'hora_solicitud' => now()

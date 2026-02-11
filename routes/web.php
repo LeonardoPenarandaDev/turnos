@@ -59,12 +59,21 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
 
     // Gestión de Tipos de Trámite
     Route::get('/tipos-tramite', [AdminController::class, 'tiposTramite'])->name('tipos-tramite.index');
+    Route::post('/tipos-tramite', [AdminController::class, 'storeTipoTramite'])->name('tipos-tramite.store');
+    Route::put('/tipos-tramite/{id}', [AdminController::class, 'updateTipoTramite'])->name('tipos-tramite.update');
+    Route::delete('/tipos-tramite/{id}', [AdminController::class, 'destroyTipoTramite'])->name('tipos-tramite.destroy');
 
     // Gestión de Cajas
     Route::get('/cajas', [AdminController::class, 'cajas'])->name('cajas.index');
+    Route::post('/cajas', [AdminController::class, 'storeCaja'])->name('cajas.store');
+    Route::put('/cajas/{id}', [AdminController::class, 'updateCaja'])->name('cajas.update');
+    Route::delete('/cajas/{id}', [AdminController::class, 'destroyCaja'])->name('cajas.destroy');
 
     // Gestión de Usuarios/Cajeros
     Route::get('/usuarios', [AdminController::class, 'usuarios'])->name('usuarios.index');
+    Route::post('/usuarios', [AdminController::class, 'storeUsuario'])->name('usuarios.store');
+    Route::put('/usuarios/{id}', [AdminController::class, 'updateUsuario'])->name('usuarios.update');
+    Route::delete('/usuarios/{id}', [AdminController::class, 'destroyUsuario'])->name('usuarios.destroy');
 
     // Reportes y estadísticas
     Route::get('/reportes', [AdminController::class, 'reportes'])->name('reportes');

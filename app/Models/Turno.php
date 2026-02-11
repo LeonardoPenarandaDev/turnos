@@ -12,6 +12,7 @@ class Turno extends Model
         'tipo_documento',
         'numero_documento',
         'nombre_completo',
+        'prioridad',
         'tipo_tramite_id',
         'estado',
         'caja_id',
@@ -50,7 +51,9 @@ class Turno extends Model
     // Scopes
     public function scopePendientes($query)
     {
-        return $query->where('estado', 'pendiente')->orderBy('hora_solicitud');
+        return $query->where('estado', 'pendiente')
+            ->orderByRaw("CASE prioridad WHEN 'embarazada' THEN 1 WHEN 'tercera_edad' THEN 2 ELSE 3 END")
+            ->orderBy('hora_solicitud');
     }
 
     public function scopeEnAtencion($query)

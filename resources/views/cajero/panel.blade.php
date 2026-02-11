@@ -88,6 +88,15 @@
                                             En Atención
                                         </span>
                                     </div>
+                                    @if($turnoActual->prioridad !== 'normal')
+                                        <div class="mb-3">
+                                            @if($turnoActual->prioridad === 'embarazada')
+                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-pink-200 text-pink-900">🤰 Preferencial - Embarazada</span>
+                                            @else
+                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-200 text-amber-900">🧓 Preferencial - Adulto Mayor</span>
+                                            @endif
+                                        </div>
+                                    @endif
                                     <div class="space-y-2 text-sm">
                                         <p><strong>Trámite:</strong> {{ $turnoActual->tipoTramite->nombre }}</p>
                                         <p><strong>Documento:</strong> {{ $turnoActual->tipo_documento }} {{ $turnoActual->numero_documento }}</p>
@@ -175,10 +184,17 @@
                             @if($turnosPendientes->count() > 0)
                                 <div class="space-y-2">
                                     @foreach($turnosPendientes as $turno)
-                                        <div class="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition">
+                                        <div class="border rounded-lg p-3 hover:bg-gray-50 transition {{ $turno->prioridad !== 'normal' ? 'border-pink-300 bg-pink-50' : 'border-gray-200' }}">
                                             <div class="flex justify-between items-start">
                                                 <div>
-                                                    <p class="font-bold text-lg text-indigo-600">{{ $turno->codigo }}</p>
+                                                    <p class="font-bold text-lg text-indigo-600">
+                                                        {{ $turno->codigo }}
+                                                        @if($turno->prioridad === 'embarazada')
+                                                            <span class="text-sm">🤰</span>
+                                                        @elseif($turno->prioridad === 'tercera_edad')
+                                                            <span class="text-sm">🧓</span>
+                                                        @endif
+                                                    </p>
                                                     <p class="text-sm text-gray-600">{{ $turno->tipoTramite->nombre }}</p>
                                                 </div>
                                                 <span class="text-xs text-gray-500">

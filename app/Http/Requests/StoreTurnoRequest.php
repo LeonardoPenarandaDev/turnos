@@ -49,6 +49,7 @@ class StoreTurnoRequest extends FormRequest
                 'min:3',
                 'regex:/^[\pL\s\-\'\.]+$/u', // Solo letras, espacios, guiones y apóstrofes
             ],
+            'prioridad' => 'required|in:normal,embarazada,tercera_edad',
             'tipo_tramite_id' => [
                 'required',
                 'exists:tipos_tramite,id,activo,1'
@@ -71,6 +72,8 @@ class StoreTurnoRequest extends FormRequest
             'nombre_completo.min' => 'El nombre debe tener al menos 3 caracteres.',
             'nombre_completo.max' => 'El nombre no puede tener más de 255 caracteres.',
             'nombre_completo.regex' => 'El nombre solo puede contener letras, espacios y guiones.',
+            'prioridad.required' => 'Debe seleccionar una prioridad.',
+            'prioridad.in' => 'La prioridad seleccionada no es válida.',
             'tipo_tramite_id.required' => 'Debe seleccionar un tipo de trámite.',
             'tipo_tramite_id.exists' => 'El tipo de trámite seleccionado no es válido o no está activo.',
         ];

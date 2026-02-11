@@ -93,6 +93,39 @@
                         @enderror
                     </div>
 
+                    <!-- Prioridad -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Atencion Preferencial
+                        </label>
+                        <div class="grid grid-cols-3 gap-3" id="prioridad-options">
+                            <label class="prioridad-label relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none border-gray-300 bg-white" data-value="normal">
+                                <input type="radio" name="prioridad" value="normal" class="sr-only" {{ old('prioridad', 'normal') == 'normal' ? 'checked' : '' }}>
+                                <span class="flex flex-1 flex-col text-center">
+                                    <span class="text-3xl mb-1">🙎</span>
+                                    <span class="block text-sm font-medium text-gray-900">Normal</span>
+                                </span>
+                            </label>
+                            <label class="prioridad-label relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none border-gray-300 bg-white" data-value="embarazada">
+                                <input type="radio" name="prioridad" value="embarazada" class="sr-only" {{ old('prioridad') == 'embarazada' ? 'checked' : '' }}>
+                                <span class="flex flex-1 flex-col text-center">
+                                    <span class="text-3xl mb-1">🤰</span>
+                                    <span class="block text-sm font-medium text-gray-900">Embarazada</span>
+                                </span>
+                            </label>
+                            <label class="prioridad-label relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none border-gray-300 bg-white" data-value="tercera_edad">
+                                <input type="radio" name="prioridad" value="tercera_edad" class="sr-only" {{ old('prioridad') == 'tercera_edad' ? 'checked' : '' }}>
+                                <span class="flex flex-1 flex-col text-center">
+                                    <span class="text-3xl mb-1">🧓</span>
+                                    <span class="block text-sm font-medium text-gray-900">Adulto Mayor</span>
+                                </span>
+                            </label>
+                        </div>
+                        @error('prioridad')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     <!-- Tipo de Trámite -->
                     <div>
                         <label for="tipo_tramite_id" class="block text-sm font-medium text-gray-700 mb-2">
@@ -135,4 +168,22 @@
             </div>
         </div>
     </div>
+    <script>
+        const prioridadStyles = {
+            normal: 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500',
+            embarazada: 'border-pink-500 bg-pink-50 ring-2 ring-pink-500',
+            tercera_edad: 'border-amber-500 bg-amber-50 ring-2 ring-amber-500'
+        };
+        const baseClass = 'prioridad-label relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none';
+
+        function updatePrioridadUI() {
+            document.querySelectorAll('.prioridad-label').forEach(label => {
+                const radio = label.querySelector('input[type="radio"]');
+                const active = prioridadStyles[label.dataset.value] || prioridadStyles.normal;
+                label.className = baseClass + ' ' + (radio.checked ? active : 'border-gray-300 bg-white');
+            });
+        }
+        document.querySelectorAll('.prioridad-label input').forEach(r => r.addEventListener('change', updatePrioridadUI));
+        updatePrioridadUI();
+    </script>
 </x-guest-layout>

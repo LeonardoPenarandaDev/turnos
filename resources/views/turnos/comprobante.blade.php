@@ -53,6 +53,21 @@
                         </span>
                     </div>
 
+                    @if($turno->prioridad !== 'normal')
+                        <div class="flex justify-between items-center py-3 border-b">
+                            <span class="text-gray-600 font-medium">Prioridad:</span>
+                            @if($turno->prioridad === 'embarazada')
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-pink-100 text-pink-800">
+                                    🤰 Mujer Embarazada
+                                </span>
+                            @else
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
+                                    🧓 Adulto Mayor
+                                </span>
+                            @endif
+                        </div>
+                    @endif
+
                     <!-- Información de Espera -->
                     <div class="bg-blue-50 rounded-lg p-4 mt-6">
                         <div class="flex items-start">
