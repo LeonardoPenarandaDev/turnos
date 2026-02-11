@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Turnos - Acceso Rápido</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+        .card-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        .card-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .card-desc {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        .card-info {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            color: #555;
+        }
+        .public { border-top: 4px solid #10b981; }
+        .cajero { border-top: 4px solid #3b82f6; }
+        .admin { border-top: 4px solid #ef4444; }
+        .screen { border-top: 4px solid #f59e0b; }
+        .credentials {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            color: white;
+        }
+        .credentials h3 {
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .cred-item {
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+        }
+        .cred-item strong {
+            color: #fbbf24;
+        }
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎫 Sistema de Turnos</h1>
+            <p>Alcaldía de Cúcuta - Acceso Rápido Local</p>
+        </div>
+
+        <div class="grid">
+            <a href="http://localhost:8000" target="_blank" class="card public">
+                <div class="card-icon">🎫</div>
+                <div class="card-title">Solicitar Turno</div>
+                <div class="card-desc">
+                    Interfaz pública para que los ciudadanos soliciten su turno de atención.
+                </div>
+                <div class="card-info">
+                    ✅ Acceso público - No requiere login
+                </div>
+            </a>
+
+            <a href="http://localhost:8000/login" target="_blank" class="card cajero">
+                <div class="card-icon">👤</div>
+                <div class="card-title">Panel de Cajero</div>
+                <div class="card-desc">
+                    Acceso para cajeros: llamar turnos, atender ciudadanos, ver estadísticas.
+                </div>
+                <div class="card-info">
+                    <strong>Email:</strong> maria.gonzalez@cucuta.gov.co<br>
+                    <strong>Password:</strong> cajero123
+                </div>
+            </a>
+
+            <a href="http://localhost:8000/login" target="_blank" class="card admin">
+                <div class="card-icon">👨‍💼</div>
+                <div class="card-title">Panel Admin</div>
+                <div class="card-desc">
+                    Dashboard administrativo: reportes, estadísticas, gestión de cajas y usuarios.
+                </div>
+                <div class="card-info">
+                    <strong>Email:</strong> admin@cucuta.gov.co<br>
+                    <strong>Password:</strong> admin123
+                </div>
+            </a>
+
+            <a href="http://localhost:8000/pantalla-publica" target="_blank" class="card screen">
+                <div class="card-icon">📺</div>
+                <div class="card-title">Pantalla Pública</div>
+                <div class="card-desc">
+                    Pantalla para TV/Monitor: muestra turnos llamados en tiempo real (auto-refresh).
+                </div>
+                <div class="card-info">
+                    🔄 Se actualiza cada 3 segundos automáticamente
+                </div>
+            </a>
+        </div>
+
+        <div class="credentials">
+            <h3>📋 Credenciales Disponibles</h3>
+            <div class="cred-item">
+                <strong>Admin:</strong> admin@cucuta.gov.co / admin123
+            </div>
+            <div class="cred-item">
+                <strong>Cajero 1:</strong> maria.gonzalez@cucuta.gov.co / cajero123 (Caja 1)
+            </div>
+            <div class="cred-item">
+                <strong>Cajero 2:</strong> carlos.ramirez@cucuta.gov.co / cajero123 (Caja 2)
+            </div>
+            <div class="cred-item">
+                <strong>Cajero 3:</strong> ana.martinez@cucuta.gov.co / cajero123 (Caja 3)
+            </div>
+            <div class="cred-item">
+                <strong>Cajero 4:</strong> luis.perez@cucuta.gov.co / cajero123 (Caja 4)
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>💡 <strong>Tip:</strong> Guarda esta página en favoritos para acceso rápido</p>
+            <p>Documentación completa en: INSTALACION_COMPLETA.md</p>
+        </div>
+    </div>
+</body>
+</html>
