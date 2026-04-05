@@ -52,7 +52,9 @@ class Turno extends Model
     public function scopePendientes($query)
     {
         return $query->where('estado', 'pendiente')
-            ->orderByRaw("CASE prioridad WHEN 'embarazada' THEN 1 WHEN 'tercera_edad' THEN 2 ELSE 3 END")
+            ->orderByRaw("CASE prioridad WHEN 'embarazada' THEN 1 WHEN 'discapacidad' THEN 1 WHEN 'tercera_edad' THEN 2 ELSE 3 END")
+            ->orderByRaw("(SELECT nombre FROM tipos_tramite WHERE id = turnos.tipo_tramite_id) LIKE '%gruas%' DESC")
+            ->orderByRaw("(SELECT nombre FROM tipos_tramite WHERE id = turnos.tipo_tramite_id) LIKE '%industria y comercio%' DESC")
             ->orderBy('hora_solicitud');
     }
 
@@ -77,24 +79,31 @@ class Turno extends Model
     }
 
     // Métodos
-    public static function generarCodigo()
+    public static function generarCodigo($prioridad = 'normal')
     {
-        return \DB::transaction(function () {
-            // Usar lockForUpdate para evitar race conditions
-            $ultimoTurno = self::whereDate('created_at', Carbon::today())
-                ->orderBy('id', 'desc')
+        return \DB::transaction(function () use ($prioridad) {
+            // Bloquear la última fila global para evitar condiciones de carrera
+            self::orderBy('id', 'desc')
                 ->lockForUpdate()
                 ->first();
 
-            if (!$ultimoTurno) {
-                return 'A001';
+            $isPriority = in_array($prioridad, ['embarazada', 'discapacidad', 'tercera_edad']);
+            $letraInicial = $isPriority ? 'P' : 'A';
+
+            // Generar código basado solo en los turnos de hoy (reinicio diario)
+            $ultimoTurnoHoy = self::whereDate('created_at', Carbon::today())
+                ->where('codigo', 'like', $letraInicial . '%')
+                ->orderBy('id', 'desc')
+                ->first();
+
+            if (!$ultimoTurnoHoy) {
+                return $letraInicial . '001';
             }
 
-            $letra = substr($ultimoTurno->codigo, 0, 1);
-            $numero = intval(substr($ultimoTurno->codigo, 1));
+            $letra = substr($ultimoTurnoHoy->codigo, 0, 1);
+            $numero = intval(substr($ultimoTurnoHoy->codigo, 1));
 
             if ($numero >= 999) {
-                // Si llega a 999, pasar a la siguiente letra
                 $letra = chr(ord($letra) + 1);
                 $numero = 1;
             } else {

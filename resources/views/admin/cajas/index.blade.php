@@ -119,7 +119,7 @@
     @push('scripts')
     <script>
         function editarCaja(id, numero, nombre, activa) {
-            document.getElementById('form-editar-caja').action = `/admin/cajas/${id}`;
+            document.getElementById('form-editar-caja').action = `{{ url('admin/cajas') }}/${id}`;
             document.getElementById('edit-caja-numero').value = numero;
             document.getElementById('edit-caja-nombre').value = nombre;
             document.getElementById('edit-caja-activa').value = activa ? '1' : '0';

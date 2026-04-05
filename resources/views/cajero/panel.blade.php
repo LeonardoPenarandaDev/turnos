@@ -77,6 +77,21 @@
                             <h3 class="text-lg font-semibold text-gray-900 mb-4">Turno Actual</h3>
 
                             @if($turnoActual)
+                                @if($turnoActual->user_id != auth()->id())
+                                    <!-- Aviso: turno de otro cajero -->
+                                    <div class="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4 rounded">
+                                        <div class="flex items-center">
+                                            <svg class="h-5 w-5 text-amber-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                                            </svg>
+                                            <p class="text-sm text-amber-700">
+                                                <strong>Turno iniciado por {{ $turnoActual->cajero->name ?? 'otro cajero' }}.</strong>
+                                                Puede finalizar, cancelar o transferir este turno desde aqui.
+                                            </p>
+                                        </div>
+                                    </div>
+                                @endif
+
                                 <!-- Turno en atención -->
                                 <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg p-6 text-white mb-4">
                                     <div class="flex justify-between items-start mb-4">
@@ -92,8 +107,10 @@
                                         <div class="mb-3">
                                             @if($turnoActual->prioridad === 'embarazada')
                                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-pink-200 text-pink-900">🤰 Preferencial - Embarazada</span>
-                                            @else
+                                            @elseif($turnoActual->prioridad === 'tercera_edad')
                                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-200 text-amber-900">🧓 Preferencial - Adulto Mayor</span>
+                                            @elseif($turnoActual->prioridad === 'discapacidad')
+                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-200 text-blue-900">♿ Preferencial - Discapacidad</span>
                                             @endif
                                         </div>
                                     @endif
@@ -184,22 +201,46 @@
                             @if($turnosPendientes->count() > 0)
                                 <div class="space-y-2">
                                     @foreach($turnosPendientes as $turno)
-                                        <div class="border rounded-lg p-3 hover:bg-gray-50 transition {{ $turno->prioridad !== 'normal' ? 'border-pink-300 bg-pink-50' : 'border-gray-200' }}">
+                                        <div class="border rounded-lg p-3 hover:bg-gray-50 transition {{ $turno->prioridad !== 'normal' ? ($turno->prioridad === 'discapacidad' ? 'border-blue-300 bg-blue-50' : 'border-pink-300 bg-pink-50') : 'border-gray-200' }}">
                                             <div class="flex justify-between items-start">
-                                                <div>
+                                                <div class="flex-1">
                                                     <p class="font-bold text-lg text-indigo-600">
                                                         {{ $turno->codigo }}
                                                         @if($turno->prioridad === 'embarazada')
                                                             <span class="text-sm">🤰</span>
                                                         @elseif($turno->prioridad === 'tercera_edad')
                                                             <span class="text-sm">🧓</span>
+                                                        @elseif($turno->prioridad === 'discapacidad')
+                                                            <span class="text-sm">♿</span>
                                                         @endif
                                                     </p>
                                                     <p class="text-sm text-gray-600">{{ $turno->tipoTramite->nombre }}</p>
+                                                    @if($turno->prioridad !== 'normal')
+                                                        <p class="text-xs mt-1">
+                                                            @if($turno->prioridad === 'embarazada')
+                                                                <span class="bg-pink-200 text-pink-800 px-1.5 py-0.5 rounded-full font-medium">Embarazada</span>
+                                                            @elseif($turno->prioridad === 'tercera_edad')
+                                                                <span class="bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded-full font-medium">Adulto Mayor</span>
+                                                            @elseif($turno->prioridad === 'discapacidad')
+                                                                <span class="bg-blue-200 text-blue-800 px-1.5 py-0.5 rounded-full font-medium">Discapacidad</span>
+                                                            @endif
+                                                        </p>
+                                                    @endif
                                                 </div>
-                                                <span class="text-xs text-gray-500">
-                                                    {{ $turno->hora_solicitud->format('H:i') }}
-                                                </span>
+                                                <div class="flex flex-col items-end space-y-2">
+                                                    <span class="text-xs text-gray-500">
+                                                        {{ $turno->hora_solicitud->format('H:i') }}
+                                                    </span>
+                                                    @if(!$turnoActual)
+                                                        <button
+                                                            onclick="llamarTurnoEspecifico({{ $turno->id }}, '{{ $turno->codigo }}')"
+                                                            class="bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition duration-200"
+                                                            title="Llamar este turno"
+                                                        >
+                                                            Llamar
+                                                        </button>
+                                                    @endif
+                                                </div>
                                             </div>
                                         </div>
                                     @endforeach
@@ -222,6 +263,7 @@
     @push('scripts')
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        const baseUrl = '{{ url("cajero/turno") }}';
 
         const defaultHeaders = {
             'Content-Type': 'application/json',
@@ -252,9 +294,20 @@
             }
         }
 
+        async function llamarTurnoEspecifico(turnoId, codigo) {
+            if (!confirm(`¿Desea llamar el turno ${codigo}?`)) return;
+
+            try {
+                const data = await fetchJSON(`${baseUrl}/${turnoId}/llamar`, { method: 'POST' });
+                window.location.reload();
+            } catch (error) {
+                alert(error.message || 'Error al llamar turno');
+            }
+        }
+
         async function repetirLlamado(turnoId) {
             try {
-                await fetchJSON(`/cajero/turno/${turnoId}/repetir`, { method: 'POST' });
+                await fetchJSON(`${baseUrl}/${turnoId}/repetir`, { method: 'POST' });
                 alert('Llamado repetido en pantalla publica');
             } catch (error) {
                 alert(error.message || 'Error al repetir llamado');
@@ -266,7 +319,7 @@
             if (observaciones === null) return;
 
             try {
-                await fetchJSON(`/cajero/turno/${turnoId}/finalizar`, {
+                await fetchJSON(`${baseUrl}/${turnoId}/finalizar`, {
                     method: 'POST',
                     body: JSON.stringify({ observaciones })
                 });
@@ -286,7 +339,7 @@
             if (!confirm('Esta seguro de cancelar este turno?')) return;
 
             try {
-                await fetchJSON(`/cajero/turno/${turnoId}/cancelar`, {
+                await fetchJSON(`${baseUrl}/${turnoId}/cancelar`, {
                     method: 'POST',
                     body: JSON.stringify({ motivo })
                 });
@@ -317,7 +370,7 @@
             if (!confirm(`Transferir turno a ${cajaValida.nombre}?`)) return;
 
             try {
-                await fetchJSON(`/cajero/turno/${turnoId}/transferir`, {
+                await fetchJSON(`${baseUrl}/${turnoId}/transferir`, {
                     method: 'POST',
                     body: JSON.stringify({ caja_id: parseInt(cajaId) })
                 });

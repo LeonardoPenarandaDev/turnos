@@ -1,0 +1,268 @@
+========================================================================
+         INFORME DE ACTIVIDADES - SISTEMA DE GESTION DE TURNOS
+                      ALCALDIA DE CUCUTA
+========================================================================
+
+OBJETO: Desarrollo e implementacion del Sistema de Gestion de Turnos
+        para la atencion al publico en ventanillas de servicio de la
+        Alcaldia de Cucuta.
+
+------------------------------------------------------------------------
+1. DESCRIPCION GENERAL DEL SISTEMA
+------------------------------------------------------------------------
+
+Se desarrollo una aplicacion web para la gestion integral de turnos
+que permite organizar, controlar y optimizar la atencion al ciudadano
+en las ventanillas de servicio de la Alcaldia de Cucuta.
+
+El sistema gestiona todo el ciclo de vida de un turno: desde la
+solicitud por parte del ciudadano, pasando por el llamado y atencion
+en ventanilla por parte del cajero, hasta la finalizacion del servicio,
+incluyendo la visualizacion en tiempo real en pantalla publica.
+
+La aplicacion fue desarrollada utilizando el framework Laravel (PHP),
+con interfaz responsive basada en Tailwind CSS, y base de datos
+relacional. El sistema es accesible desde cualquier navegador web
+sin necesidad de instalacion adicional.
+
+------------------------------------------------------------------------
+2. MODULOS DESARROLLADOS
+------------------------------------------------------------------------
+
+2.1 MODULO DE SOLICITUD DE TURNOS (ACCESO PUBLICO)
+------------------------------------------------------------------------
+
+   Se implemento un formulario publico accesible sin autenticacion
+   que permite al ciudadano solicitar un turno de atencion.
+
+   Funcionalidades:
+   - Formulario de solicitud con campos: tipo de documento (CC, TI,
+     CE, Pasaporte), numero de documento, nombre completo, tipo de
+     tramite y nivel de prioridad.
+   - Validacion en tiempo real del formato de documento segun su tipo:
+     * Cedula de Ciudadania (CC): 6 a 10 digitos numericos.
+     * Tarjeta de Identidad (TI): 10 a 11 digitos numericos.
+     * Cedula de Extranjeria (CE): 6 a 15 caracteres alfanumericos.
+     * Pasaporte (PAS): 6 a 12 caracteres alfanumericos.
+   - Seleccion de tipo de tramite entre los servicios activos
+     configurados por el administrador.
+   - Seleccion de prioridad de atencion: Normal, Embarazada, Tercera
+     Edad o Discapacidad, garantizando atencion preferencial a
+     poblacion vulnerable.
+   - Generacion automatica de codigo de turno unico con formato
+     letra + numero secuencial (ejemplo: A001, A002, ..., A999,
+     B001, etc.).
+   - Prevencion de turnos duplicados: el sistema impide que una
+     misma persona tenga dos turnos activos en el mismo dia.
+   - Control de tasa de solicitudes (rate limiting) para prevenir
+     abuso del sistema: maximo 50 solicitudes por minuto por
+     direccion IP.
+   - Generacion de comprobante digital con numero de turno, tipo de
+     tramite seleccionado, tiempo estimado de espera y opcion de
+     impresion.
+
+2.2 MODULO DE ATENCION EN VENTANILLA (PANEL DEL CAJERO)
+------------------------------------------------------------------------
+
+   Se implemento un panel de trabajo para el personal de atencion
+   (cajeros) que permite gestionar la cola de turnos y registrar
+   la atencion al ciudadano.
+
+   Funcionalidades:
+   - Visualizacion del turno actualmente en atencion con informacion
+     completa del ciudadano: nombre, documento, tipo de tramite y
+     prioridad.
+   - Boton de llamado al siguiente turno, que selecciona
+     automaticamente el turno pendiente de mayor prioridad respetando
+     el orden de llegada dentro de la misma prioridad.
+   - Llamado manual de un turno especifico seleccionandolo
+     directamente de la cola de espera.
+   - Funcion de repetir llamado para casos en que el ciudadano no
+     se presente inmediatamente.
+   - Registro de inicio de atencion cuando el ciudadano se presenta
+     en ventanilla.
+   - Registro de finalizacion de atencion con calculo automatico del
+     tiempo de servicio en segundos.
+   - Cancelacion de turno con registro obligatorio del motivo.
+   - Transferencia de turno a otra ventanilla de servicio cuando el
+     tramite lo requiera.
+   - Cola de turnos pendientes filtrada segun los tipos de tramite
+     asignados a cada cajero, garantizando que cada cajero solo
+     atienda los servicios para los cuales esta habilitado.
+   - Estadisticas diarias del cajero: turnos atendidos, tiempo
+     promedio de atencion y cantidad de ciudadanos en espera.
+   - Reporte diario detallado con listado de todos los turnos
+     atendidos, incluyendo marcas de tiempo de cada etapa.
+   - Actualizacion automatica del panel cada 30 segundos.
+
+2.3 MODULO DE PANTALLA PUBLICA
+------------------------------------------------------------------------
+
+   Se implemento una interfaz de visualizacion publica diseñada para
+   ser proyectada en televisores o monitores en la sala de espera.
+
+   Funcionalidades:
+   - Visualizacion en pantalla completa del turno actualmente en
+     llamado, destacado con animacion visual para captar la atencion
+     del ciudadano.
+   - Indicacion de la ventanilla (caja) donde debe dirigirse el
+     ciudadano.
+   - Listado de los ultimos 5 turnos llamados (historial reciente).
+   - Listado de los proximos 5 turnos en cola de espera.
+   - Indicadores visuales de prioridad (atencion preferencial para
+     embarazadas, adultos mayores y personas con discapacidad).
+   - Reloj y fecha en tiempo real.
+   - Actualizacion automatica cada 3 segundos mediante consulta a
+     la API del sistema.
+   - Diseño optimizado para visualizacion a distancia con tipografia
+     de gran tamaño y alto contraste.
+   - Soporte para reproduccion de contenido multimedia (video
+     publicitario) durante los tiempos de espera.
+
+2.4 MODULO DE ADMINISTRACION
+------------------------------------------------------------------------
+
+   Se implemento un panel de administracion completo para la
+   configuracion y supervision del sistema.
+
+   Funcionalidades:
+
+   a) Gestion de Tipos de Tramite:
+      - Crear, editar y desactivar tipos de tramite disponibles para
+        los ciudadanos.
+      - Cada tipo de tramite incluye nombre y descripcion.
+      - Activacion/desactivacion sin perder datos historicos.
+
+   b) Gestion de Cajas (Ventanillas):
+      - Crear, editar y desactivar ventanillas de atencion.
+      - Cada caja tiene numero identificador y nombre descriptivo.
+      - Activacion/desactivacion segun necesidad operativa.
+
+   c) Gestion de Usuarios:
+      - Crear, editar y eliminar usuarios del sistema con roles
+        diferenciados (Administrador y Cajero).
+      - Asignacion de ventanilla (caja) a cada cajero.
+      - Asignacion de tipos de tramite a cada cajero, definiendo
+        que servicios puede atender.
+      - Gestion de credenciales de acceso.
+
+   d) Reportes:
+      - Reporte diario general con todos los turnos del dia,
+        filtrable por fecha.
+      - Detalle de cada turno: codigo, ciudadano, documento, tipo
+        de tramite, prioridad, estado, cajero asignado, ventanilla,
+        y marcas de tiempo.
+      - Estadisticas resumidas: total de turnos, turnos atendidos,
+        turnos cancelados y tiempo promedio de atencion.
+
+   e) Estadisticas:
+      - Estadisticas por tipo de tramite con datos de los ultimos
+        30 dias: total de turnos, turnos atendidos, tasa de
+        cancelacion y tiempo promedio de atencion.
+      - Estadisticas de productividad por cajero: turnos atendidos
+        en el dia, tiempo promedio de atencion y turno actual.
+
+------------------------------------------------------------------------
+3. SISTEMA DE PRIORIDADES
+------------------------------------------------------------------------
+
+Se implemento un sistema de atencion preferencial que respeta la
+normativa de atencion prioritaria a poblacion vulnerable:
+
+   Nivel 1 (Maxima prioridad): Mujeres embarazadas y personas con
+   discapacidad.
+
+   Nivel 2 (Prioridad alta): Adultos mayores (tercera edad).
+
+   Nivel 3 (Prioridad normal): Ciudadanos sin condicion especial.
+
+Dentro de un mismo nivel de prioridad, los turnos se atienden por
+orden de llegada (primero en llegar, primero en ser atendido).
+
+------------------------------------------------------------------------
+4. FLUJO DE ESTADOS DEL TURNO
+------------------------------------------------------------------------
+
+Cada turno sigue el siguiente ciclo de vida controlado por el sistema:
+
+   PENDIENTE: El ciudadano solicito el turno y se encuentra en cola
+              de espera.
+
+   LLAMADO:   El cajero llama al turno. Se muestra en la pantalla
+              publica con la ventanilla asignada.
+
+   EN ATENCION: El ciudadano se presento y el cajero inicio el
+                servicio.
+
+   ATENDIDO:  El cajero finalizo la atencion. Se registra el tiempo
+              total de servicio.
+
+   CANCELADO: El turno fue cancelado por el cajero con registro del
+              motivo (ciudadano ausente, documentacion incompleta,
+              etc.).
+
+   Flujo adicional - TRANSFERENCIA: Un turno puede ser transferido
+   a otra ventanilla, regresando al estado pendiente para ser
+   llamado nuevamente desde la nueva caja asignada.
+
+------------------------------------------------------------------------
+5. MEDIDAS DE SEGURIDAD IMPLEMENTADAS
+------------------------------------------------------------------------
+
+   - Autenticacion obligatoria para cajeros y administradores con
+     control de sesiones.
+   - Sistema de roles con middleware que restringe el acceso segun
+     el perfil del usuario (administrador o cajero).
+   - Politicas de autorizacion granular que garantizan que cada
+     cajero solo pueda operar sobre los turnos y servicios que le
+     corresponden.
+   - Proteccion CSRF (Cross-Site Request Forgery) en todos los
+     formularios del sistema.
+   - Validacion y sanitizacion de todos los datos de entrada para
+     prevenir inyeccion SQL y ataques XSS.
+   - Control de tasa de solicitudes (rate limiting) para prevenir
+     ataques de denegacion de servicio y abuso del sistema.
+   - Transacciones de base de datos para garantizar la integridad
+     de los datos en operaciones criticas como la generacion de
+     codigos de turno.
+   - Prevencion de duplicados mediante validacion en base de datos.
+
+------------------------------------------------------------------------
+6. CARACTERISTICAS TECNICAS
+------------------------------------------------------------------------
+
+   - Framework: Laravel (PHP)
+   - Frontend: Tailwind CSS con diseño responsive adaptable a
+     dispositivos moviles, tablets y pantallas de escritorio.
+   - Base de datos: SQLite (desarrollo) / MySQL (produccion)
+   - Arquitectura: Modelo-Vista-Controlador (MVC)
+   - API interna para actualizacion en tiempo real de la pantalla
+     publica.
+   - Sistema de eventos para broadcasting de llamados de turnos.
+   - Diseño modular que permite escalabilidad y mantenimiento.
+
+------------------------------------------------------------------------
+7. ENTREGABLES
+------------------------------------------------------------------------
+
+   - Codigo fuente completo de la aplicacion web.
+   - Base de datos con estructura de tablas y relaciones.
+   - Datos de prueba precargados (seeders) para validacion del
+     sistema.
+   - Documentacion tecnica de instalacion y configuracion.
+   - Sistema funcional con 11 vistas de interfaz de usuario:
+     * Formulario de solicitud de turno (publico).
+     * Comprobante de turno (publico).
+     * Pantalla publica para sala de espera.
+     * Panel de atencion del cajero.
+     * Reporte diario del cajero.
+     * Dashboard del administrador.
+     * Gestion de tipos de tramite.
+     * Gestion de cajas/ventanillas.
+     * Gestion de usuarios.
+     * Reportes generales.
+     * Estadisticas del sistema.
+
+========================================================================
+                        FIN DEL INFORME
+========================================================================

@@ -50,18 +50,73 @@ class AdminController extends Controller
 
     public function estadisticas()
     {
-        $tramiteStats = TipoTramite::withCount(['turnos' => function ($query) {
-            $query->whereDate('created_at', '>=', Carbon::now()->subDays(30));
-        }])->get();
+        $periodo = request('periodo', 'hoy');
+        $desde = null;
+        $hasta = null;
 
+        switch ($periodo) {
+            case 'semana':
+                $desde = Carbon::now()->startOfWeek();
+                $hasta = Carbon::now()->endOfWeek();
+                break;
+            case 'mes':
+                $desde = Carbon::now()->startOfMonth();
+                $hasta = Carbon::now()->endOfMonth();
+                break;
+            case 'personalizado':
+                $desde = request('desde') ? Carbon::parse(request('desde'))->startOfDay() : Carbon::today();
+                $hasta = request('hasta') ? Carbon::parse(request('hasta'))->endOfDay() : Carbon::today()->endOfDay();
+                break;
+            default: // hoy
+                $periodo = 'hoy';
+                $desde = Carbon::today();
+                $hasta = Carbon::today()->endOfDay();
+                break;
+        }
+
+        // Resumen global del periodo
+        $turnosDelPeriodo = Turno::whereBetween('created_at', [$desde, $hasta]);
+        $resumen = [
+            'total' => (clone $turnosDelPeriodo)->count(),
+            'atendidos' => (clone $turnosDelPeriodo)->where('estado', 'atendido')->count(),
+            'cancelados' => (clone $turnosDelPeriodo)->where('estado', 'cancelado')->count(),
+            'tiempo_promedio' => (clone $turnosDelPeriodo)->where('estado', 'atendido')->avg('tiempo_atencion'),
+        ];
+
+        // Estadísticas por cajero
         $cajeroStats = User::where('rol', 'cajero')
-            ->withCount(['turnos' => function ($query) {
-                $query->whereDate('created_at', Carbon::today())
-                    ->where('estado', 'atendido');
-            }])
-            ->get();
+            ->with('caja')
+            ->get()
+            ->map(function ($cajero) use ($desde, $hasta) {
+                $turnosCajero = Turno::where('user_id', $cajero->id)
+                    ->whereBetween('created_at', [$desde, $hasta]);
 
-        return view('admin.estadisticas', compact('tramiteStats', 'cajeroStats'));
+                $atendidos = (clone $turnosCajero)->where('estado', 'atendido')->count();
+                $cancelados = (clone $turnosCajero)->where('estado', 'cancelado')->count();
+                $tiempoPromedio = (clone $turnosCajero)->where('estado', 'atendido')->avg('tiempo_atencion');
+                $tiempoTotal = (clone $turnosCajero)->where('estado', 'atendido')->sum('tiempo_atencion');
+
+                return (object) [
+                    'id' => $cajero->id,
+                    'name' => $cajero->name,
+                    'caja' => $cajero->caja,
+                    'atendidos' => $atendidos,
+                    'cancelados' => $cancelados,
+                    'tiempo_promedio' => $tiempoPromedio,
+                    'tiempo_total' => $tiempoTotal,
+                ];
+            })
+            ->sortByDesc('atendidos')
+            ->values();
+
+        // Trámites más solicitados en el periodo
+        $tramiteStats = TipoTramite::withCount(['turnos' => function ($query) use ($desde, $hasta) {
+            $query->whereBetween('created_at', [$desde, $hasta]);
+        }])->get()->sortByDesc('turnos_count')->values();
+
+        return view('admin.estadisticas', compact(
+            'resumen', 'cajeroStats', 'tramiteStats', 'periodo', 'desde', 'hasta'
+        ));
     }
 
     // ==================== TIPOS DE TRÁMITE ====================
@@ -174,9 +229,10 @@ class AdminController extends Controller
 
     public function usuarios()
     {
-        $usuarios = User::with('caja')->orderBy('name')->get();
+        $usuarios = User::with(['caja', 'tiposTramite'])->orderBy('name')->get();
         $cajas = Caja::where('activa', true)->orderBy('numero')->get();
-        return view('admin.usuarios.index', compact('usuarios', 'cajas'));
+        $tiposTramite = TipoTramite::where('activo', true)->orderBy('nombre')->get();
+        return view('admin.usuarios.index', compact('usuarios', 'cajas', 'tiposTramite'));
     }
 
     public function storeUsuario(Request $request)
@@ -189,7 +245,7 @@ class AdminController extends Controller
             'caja_id' => 'nullable|exists:cajas,id',
         ]);
 
-        User::create([
+        $usuario = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
@@ -197,6 +253,8 @@ class AdminController extends Controller
             'caja_id' => $request->caja_id,
             'email_verified_at' => now(),
         ]);
+
+        $usuario->tiposTramite()->sync($request->tipos_tramite ?? []);
 
         return redirect()->route('admin.usuarios.index')->with('success', 'Usuario creado.');
     }
@@ -220,6 +278,8 @@ class AdminController extends Controller
         }
 
         $usuario->update($data);
+
+        $usuario->tiposTramite()->sync($request->tipos_tramite ?? []);
 
         return redirect()->route('admin.usuarios.index')->with('success', 'Usuario actualizado.');
     }

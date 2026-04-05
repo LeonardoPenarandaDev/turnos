@@ -383,8 +383,5 @@ Si encuentras algún problema:
 2. Lee [SETUP_GUIDE.md](SETUP_GUIDE.md) para detalles técnicos
 3. Verifica que todos los servicios estén corriendo
 
----
-
-**¡Disfruta tu sistema de turnos! 🎉**
 
 Desarrollado con ❤️ para la Alcaldía de Cúcuta

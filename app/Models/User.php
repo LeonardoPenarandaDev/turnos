@@ -57,4 +57,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Turno::class);
     }
+
+    public function tiposTramite()
+    {
+        return $this->belongsToMany(TipoTramite::class);
+    }
 }

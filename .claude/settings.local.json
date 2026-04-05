@@ -7,7 +7,9 @@
       "Bash(curl:*)",
       "Bash(python -m json.tool:*)",
       "Bash(php artisan optimize:clear:*)",
-      "Bash(php artisan route:list:*)"
+      "Bash(php artisan route:list:*)",
+      "Bash(php artisan:*)",
+      "Bash(php artisan tinker:*)"
     ]
   }
 }

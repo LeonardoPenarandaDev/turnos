@@ -38,7 +38,7 @@ class TurnoController extends Controller
         try {
             $turno = \DB::transaction(function () use ($validated) {
                 return Turno::create([
-                    'codigo' => Turno::generarCodigo(),
+                    'codigo' => Turno::generarCodigo($validated['prioridad']),
                     'tipo_documento' => $validated['tipo_documento'],
                     'numero_documento' => $validated['numero_documento'],
                     'nombre_completo' => $validated['nombre_completo'],
@@ -61,10 +61,11 @@ class TurnoController extends Controller
 
     public function show($codigo)
     {
-        $turno = Turno::with('tipoTramite')->where('codigo', $codigo)->firstOrFail();
+        $turno = Turno::with('tipoTramite')->where('codigo', $codigo)->orderBy('created_at', 'desc')->firstOrFail();
         
-        // Calcular turnos pendientes antes
+        // Calcular turnos pendientes antes, de el mismo tipo de trámite
         $turnosAdelante = Turno::where('estado', 'pendiente')
+            ->where('tipo_tramite_id', $turno->tipo_tramite_id)
             ->where('id', '<', $turno->id)
             ->count();
 

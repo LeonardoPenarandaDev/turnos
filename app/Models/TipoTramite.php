@@ -22,4 +22,9 @@ class TipoTramite extends Model
     {
         return $this->hasMany(Turno::class);
     }
+
+    public function usuarios()
+    {
+        return $this->belongsToMany(User::class);
+    }
 }

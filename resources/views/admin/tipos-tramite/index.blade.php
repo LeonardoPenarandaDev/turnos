@@ -122,7 +122,7 @@
     @push('scripts')
     <script>
         function editarTipo(id, nombre, descripcion, activo) {
-            document.getElementById('form-editar-tipo').action = `/admin/tipos-tramite/${id}`;
+            document.getElementById('form-editar-tipo').action = `{{ url('admin/tipos-tramite') }}/${id}`;
             document.getElementById('edit-tipo-nombre').value = nombre;
             document.getElementById('edit-tipo-descripcion').value = descripcion;
             document.getElementById('edit-tipo-activo').value = activo ? '1' : '0';

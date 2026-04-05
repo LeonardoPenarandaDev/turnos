@@ -23,6 +23,8 @@ Route::prefix('turnos')->group(function () {
 // Pantalla pública para mostrar turnos llamados
 Route::get('/pantalla-publica', [PantallaPublicaController::class, 'index'])->name('pantalla.publica');
 Route::get('/api/turnos-actualizados', [PantallaPublicaController::class, 'getTurnosActualizados'])->middleware('throttle:api-publica')->name('pantalla.actualizar');
+Route::get('/pantalla/tts', [PantallaPublicaController::class, 'tts'])->name('pantalla.tts');
+
 
 // Dashboard para usuarios autenticados
 Route::get('/dashboard', function () {
@@ -45,6 +47,7 @@ Route::get('/dashboard', function () {
 Route::middleware(['auth', 'verified', 'role:cajero,admin'])->prefix('cajero')->name('cajero.')->group(function () {
     Route::get('/', [CajeroController::class, 'index'])->name('panel');
     Route::post('/llamar-siguiente', [CajeroController::class, 'llamarSiguiente'])->name('llamar');
+    Route::post('/turno/{id}/llamar', [CajeroController::class, 'llamarTurnoEspecifico'])->name('llamar-especifico');
     Route::post('/turno/{id}/repetir', [CajeroController::class, 'repetirTurno'])->name('repetir');
     Route::post('/turno/{id}/iniciar', [CajeroController::class, 'iniciarAtencion'])->name('iniciar');
     Route::post('/turno/{id}/finalizar', [CajeroController::class, 'finalizarAtencion'])->name('finalizar');

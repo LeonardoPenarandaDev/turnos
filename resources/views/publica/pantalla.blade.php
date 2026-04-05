@@ -2,124 +2,514 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0">
     <title>Pantalla Pública - Turnos</title>
     @vite(['resources/css/app.css'])
     <style>
-        body {
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-size: 16px;
+        }
+        /* Layout 16:9 forzado */
+        .pantalla-tv {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
         }
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+            50% { transform: scale(1.03); }
         }
         .pulse-animation {
             animation: pulse 2s ease-in-out infinite;
         }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .slide-in {
+            animation: slideIn 0.4s ease-out;
+        }
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        .marquee-text {
+            animation: marquee 25s linear infinite;
+            white-space: nowrap;
+        }
+        /* Turno card en la lista */
+        .turno-card {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(4px);
+            border-radius: 0.75rem;
+            padding: 0.6rem 0.8rem;
+            transition: background 0.3s;
+        }
+        .turno-card:hover {
+            background: rgba(255,255,255,0.25);
+        }
     </style>
 </head>
-<body class="bg-gradient-to-br from-blue-900 to-indigo-900 text-white">
-    <div class="min-h-screen flex flex-col">
+<body class="bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900 text-white">
+    <div class="pantalla-tv">
+
         <!-- Header -->
-        <div class="bg-white text-gray-900 py-6 px-8 shadow-lg">
-            <div class="flex justify-between items-center max-w-7xl mx-auto">
-                <div>
-                    <h1 class="text-3xl font-bold">Alcaldía de Cúcuta</h1>
-                    <p class="text-gray-600">Sistema de Gestión de Turnos</p>
+        <div class="bg-white text-gray-900 shadow-lg flex-shrink-0" style="height: 10vh; min-height: 70px;">
+            <div class="flex justify-between items-center h-full px-[1.5vw]">
+                <div class="flex items-center">
+                    <img src="{{ asset('img/logo.png') }}" alt="Logo" style="height: 9vh; min-height: 60px; width: auto;">
+                </div>
+                <div class="text-center">
+                    <p class="text-[4vw] font-bold text-indigo-600 leading-none" id="current-time"></p>
                 </div>
                 <div class="text-right">
-                    <p class="text-sm text-gray-600">Fecha</p>
-                    <p class="text-xl font-semibold" id="current-date"></p>
-                    <p class="text-2xl font-bold text-indigo-600" id="current-time"></p>
+                    <p class="text-[1.5vw] font-semibold text-gray-700" id="current-date"></p>
                 </div>
             </div>
         </div>
 
-        <!-- Contenido Principal -->
-        <div class="flex-1 p-8">
-            <div class="max-w-7xl mx-auto">
-                <!-- Turno Actual -->
-                @if($turnoActual)
-                    <div class="bg-white rounded-3xl shadow-2xl p-12 mb-8 pulse-animation">
-                        <div class="text-center">
-                            <p class="text-gray-600 text-2xl mb-4">Turno Actual</p>
-                            <div class="text-indigo-600 text-9xl font-black mb-6" id="turno-actual">
-                                {{ $turnoActual->codigo }}
-                            </div>
-                            <p class="text-gray-500 text-2xl mb-2" id="nombre-actual">
-                                {{ $turnoActual->nombre_completo ?? '' }}
-                            </p>
-                            <div class="mb-6" id="prioridad-actual">
-                                @if($turnoActual->prioridad === 'embarazada')
-                                    <span class="inline-flex items-center px-4 py-2 rounded-full text-lg font-semibold bg-pink-100 text-pink-800">🤰 Preferencial - Embarazada</span>
-                                @elseif($turnoActual->prioridad === 'tercera_edad')
-                                    <span class="inline-flex items-center px-4 py-2 rounded-full text-lg font-semibold bg-amber-100 text-amber-800">🧓 Preferencial - Adulto Mayor</span>
-                                @endif
-                            </div>
-                            <div class="flex justify-center items-center space-x-8 text-gray-900">
-                                <div class="bg-indigo-100 rounded-xl px-8 py-4">
-                                    <p class="text-gray-600 text-lg mb-1">Caja</p>
-                                    <p class="text-5xl font-bold text-indigo-600" id="caja-actual">
-                                        {{ $turnoActual->caja?->numero ?? '-' }}
-                                    </p>
-                                </div>
-                                <div class="text-left">
-                                    <p class="text-gray-600 text-xl mb-2">Trámite</p>
-                                    <p class="text-3xl font-semibold" id="tramite-actual">
-                                        {{ $turnoActual->tipoTramite?->nombre ?? '-' }}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @else
-                    <div class="bg-white rounded-3xl shadow-2xl p-12 mb-8 text-center">
-                        <svg class="mx-auto h-24 w-24 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <p class="text-gray-600 text-3xl">En espera del próximo turno...</p>
-                    </div>
-                @endif
+        <!-- Contenido Principal: 3 columnas -->
+        <div class="flex-1 flex min-h-0 overflow-hidden" style="gap: 8px; padding: 8px;">
 
-                <!-- Últimos Turnos Llamados -->
-                <div class="bg-white bg-opacity-10 backdrop-blur-lg rounded-3xl p-8">
-                    <h2 class="text-3xl font-bold mb-6 text-center">Últimos Turnos Llamados</h2>
-
-                    @if($ultimosTurnos->count() > 0)
-                        <div class="grid grid-cols-5 gap-4" id="ultimos-turnos">
+            <!-- Columna Izquierda: Turnos Anteriores -->
+            <div class="flex flex-col min-h-0 flex-shrink-0" style="width: 20%;">
+                <div class="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl flex flex-col h-full overflow-hidden border border-white border-opacity-10">
+                    <div class="bg-gradient-to-r from-indigo-600 to-indigo-500 rounded-t-2xl px-4 py-[1.2vh] flex-shrink-0">
+                        <h2 class="text-[1.3vw] font-bold text-center uppercase tracking-wider">Turnos Anteriores</h2>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-[0.5vw] space-y-[0.8vh]" id="ultimos-turnos">
+                        @if($ultimosTurnos->count() > 0)
                             @foreach($ultimosTurnos as $turno)
-                                <div class="bg-white bg-opacity-20 rounded-xl p-6 text-center">
-                                    <p class="text-5xl font-bold mb-2">{{ $turno->codigo }}</p>
-                                    @if($turno->prioridad === 'embarazada')
-                                        <p class="text-sm mb-1"><span class="bg-pink-500 text-white px-2 py-0.5 rounded-full">🤰 Preferencial</span></p>
-                                    @elseif($turno->prioridad === 'tercera_edad')
-                                        <p class="text-sm mb-1"><span class="bg-amber-500 text-white px-2 py-0.5 rounded-full">🧓 Preferencial</span></p>
+                                <div class="turno-card slide-in">
+                                    <div class="flex items-center justify-between">
+                                        <div class="text-left flex-1">
+                                            <p class="text-[2.2vw] font-bold leading-none">{{ $turno->codigo }}</p>
+                                            @if($turno->prioridad === 'embarazada')
+                                                <span class="inline-block text-[0.7vw] bg-pink-500 text-white px-2 py-0.5 rounded-full mt-1">Preferencial</span>
+                                            @elseif($turno->prioridad === 'tercera_edad')
+                                                <span class="inline-block text-[0.7vw] bg-amber-500 text-white px-2 py-0.5 rounded-full mt-1">Preferencial</span>
+                                            @elseif($turno->prioridad === 'discapacidad')
+                                                <span class="inline-block text-[0.7vw] bg-blue-400 text-white px-2 py-0.5 rounded-full mt-1">Preferencial</span>
+                                            @endif
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-[0.7vw] opacity-60 uppercase">Caja</p>
+                                            <p class="text-[2vw] font-bold leading-none">{{ $turno->caja?->numero ?? '-' }}</p>
+                                        </div>
+                                    </div>
+                                    @if($turno->nombre_completo)
+                                        <p class="text-[1.8vw] opacity-60 mt-1 truncate">{{ $turno->nombre_completo }}</p>
                                     @endif
-                                    <p class="text-base opacity-80 mb-1">{{ $turno->nombre_completo ?? '' }}</p>
-                                    <p class="text-lg opacity-90">Caja {{ $turno->caja?->numero ?? '-' }}</p>
                                 </div>
                             @endforeach
-                        </div>
-                    @else
-                        <p class="text-center text-2xl opacity-75">No hay turnos recientes</p>
-                    @endif
+                        @else
+                            <div class="flex items-center justify-center h-full">
+                                <p class="text-[1.1vw] opacity-40 text-center">Sin turnos</p>
+                            </div>
+                        @endif
+                    </div>
                 </div>
+            </div>
+
+            <!-- Columna Central: Turno Actual + Video -->
+            <div class="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden" style="gap: 8px;">
+
+                <!-- Turno Actual -->
+                <div class="flex-shrink-0" style="height: 20vh;">
+                    <!-- Estado: turno visible -->
+                    <div id="turno-actual-display" class="bg-white rounded-2xl shadow-2xl h-full flex items-center justify-center pulse-animation" style="padding: 1vh 2vw; {{ $turnoActual ? '' : 'display:none' }}">
+                        <div class="w-full">
+                            <p class="text-gray-400 text-[0.9vw] uppercase tracking-widest text-center mb-[0.5vh]">Turno Actual</p>
+                            <div class="flex items-center justify-center gap-[3vw]">
+                                <div class="text-indigo-600 font-black leading-none" id="turno-actual" style="font-size: 5.5vw;">
+                                    {{ $turnoActual?->codigo ?? '' }}
+                                </div>
+                                <div class="text-gray-300 font-light leading-none" style="font-size: 5vw;">|</div>
+                                <div class="font-black leading-none" style="font-size: 5.5vw;">
+                                    <span class="text-gray-400">Módulo </span><span class="text-indigo-600" id="caja-actual">{{ $turnoActual?->caja?->numero ?? '-' }}</span>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-gray-500 font-bold" id="nombre-actual" style="font-size: 4vw;">
+                                    {{ $turnoActual?->nombre_completo ?? '' }}
+                                </p>
+                                <div class="mb-[0.3vh]" id="prioridad-actual">
+                                    @if($turnoActual && $turnoActual->prioridad === 'embarazada')
+                                        <span class="inline-flex items-center px-4 py-1 rounded-full text-[0.75vw] font-semibold bg-pink-100 text-pink-800">Preferencial - Embarazada</span>
+                                    @elseif($turnoActual && $turnoActual->prioridad === 'tercera_edad')
+                                        <span class="inline-flex items-center px-4 py-1 rounded-full text-[0.75vw] font-semibold bg-amber-100 text-amber-800">Preferencial - Adulto Mayor</span>
+                                    @elseif($turnoActual && $turnoActual->prioridad === 'discapacidad')
+                                        <span class="inline-flex items-center px-4 py-1 rounded-full text-[0.75vw] font-semibold bg-blue-100 text-blue-800">Preferencial - Discapacidad</span>
+                                    @endif
+                                </div>
+                                <p class="text-gray-500 text-[1vw]" id="tramite-actual">
+                                    {{ $turnoActual?->tipoTramite?->nombre ?? '-' }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Estado: esperando -->
+                    <div id="turno-esperando" class="bg-white rounded-2xl shadow-2xl h-full flex items-center justify-center" style="padding: 1vh 2vw; {{ $turnoActual ? 'display:none' : '' }}">
+                        <div class="text-center">
+                            <svg class="mx-auto text-gray-300 mb-[1vh]" style="width:4vw;height:4vw;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <p class="text-gray-400 text-[1.5vw] font-light">En espera del próximo turno...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video Publicitario -->
+                <div class="flex-1 min-h-0">
+                    <div class="bg-black rounded-2xl h-full overflow-hidden" id="video-container">
+                        <video id="video-publicitario" class="w-full h-full object-contain" autoplay muted loop playsinline>
+                            <source src="{{ asset('videos/publicidad.mp4') }}" type="video/mp4">
+                        </video>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna Derecha: Próximos Turnos -->
+            <div class="flex flex-col min-h-0 flex-shrink-0" style="width: 20%; gap: 8px;">
+                <!-- Próximos Turnos -->
+                <div class="flex-1 flex flex-col min-h-0">
+                    <div class="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl flex flex-col h-full overflow-hidden border border-white border-opacity-10">
+                        <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-t-2xl px-4 py-[1.2vh] flex-shrink-0">
+                            <h2 class="text-[1.3vw] font-bold text-center uppercase tracking-wider">Próximos Turnos</h2>
+                        </div>
+                        <div class="flex-1 overflow-y-auto p-[0.5vw] space-y-[0.8vh]" id="proximos-turnos">
+                            @if($proximosTurnos->count() > 0)
+                                @foreach($proximosTurnos as $turno)
+                                    <div class="turno-card slide-in">
+                                        <div class="flex items-center justify-between">
+                                            <div class="text-left flex-1">
+                                                <p class="text-[2.2vw] font-bold leading-none">{{ $turno->codigo }}</p>
+                                                @if($turno->prioridad === 'embarazada')
+                                                    <span class="inline-block text-[0.7vw] bg-pink-500 text-white px-2 py-0.5 rounded-full mt-1">Preferencial</span>
+                                                @elseif($turno->prioridad === 'tercera_edad')
+                                                    <span class="inline-block text-[0.7vw] bg-amber-500 text-white px-2 py-0.5 rounded-full mt-1">Preferencial</span>
+                                                @elseif($turno->prioridad === 'discapacidad')
+                                                    <span class="inline-block text-[0.7vw] bg-blue-400 text-white px-2 py-0.5 rounded-full mt-1">Preferencial</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        @if($turno->nombre_completo)
+                                            <p class="text-[0.8vw] opacity-60 mt-1 truncate">{{ $turno->nombre_completo }}</p>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            @else
+                                <div class="flex items-center justify-center h-full">
+                                    <p class="text-[1.1vw] opacity-40 text-center">Sin turnos en espera</p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
-        <!-- Footer -->
-        <div class="bg-black bg-opacity-30 py-4 px-8 text-center">
-            <p class="text-xl">Por favor, esté atento al llamado de su turno</p>
+        <!-- Footer con Marquee -->
+        <div class="bg-black bg-opacity-60 flex-shrink-0 overflow-hidden" style="height: 4vh; min-height: 32px; display: flex; align-items: center;">
+            <p class="marquee-text text-[1.1vw] font-medium">
+                Bienvenidos a la Alcaldía de San José de Cúcuta &nbsp;&mdash;&nbsp; Por favor, esté atento al llamado de su turno &nbsp;&mdash;&nbsp; Recuerde tener sus documentos a la mano para agilizar su trámite
+            </p>
         </div>
     </div>
 
-    <!-- Audio para notificación -->
-    <audio id="notification-sound" preload="auto">
-        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGG18+WZVRMKUKzl8K5dGAg2ltnyxHUpBSl+zPDeijkJFmS58OWcTxALUqjo8K1bGAgxlN3xxXMoBSaAzfHaizsKGGC38OScTQ8LTKXk8LJgGgc0mtvyw3ElBSiAzfHajDcJGGC38OSaTRALTqvm8LFeGAgvm9rzwXMoBSZ/y/HcizsKF160+PmgShUMTKnn8bVdFgo5odv1xG4hBSJ6ye/glEQPClWs5O+kWhoMLqXh8r1tIQUsfszx3oYxCRVhu+/mnEwQC1Gs5O+qUxoLM5Td8sRzJQUpg87x2ok0CBdfu+/lmU8PC0+p5fCqVRkLM5Tc8sNzJQUogM3w2oo2CRdduuvktFYaCzOU3fLDcyUFKIDN8NqLNgkXXbbs5bNXGgoxlN3xxXMoBSiAzPDbizYJF1247eeyWBkLMZTe8MVwKQUngMvw3Yk3CRVduuznslgZCjGU3vDGbykFJ3/K8d6JOQoWYrbt5rJXGAowlNzwxnApBSd+yvHej" type="audio/wav">
-    </audio>
+    <!-- Banner pequeño de audio (no bloquea la pantalla) -->
+    <div id="audio-banner" class="fixed top-0 left-0 right-0 z-50 bg-red-600 text-white text-center py-2 text-lg font-bold cursor-pointer" style="display:none;" onclick="activarAudio()">
+        Toque aqui o presione cualquier tecla para activar el audio
+    </div>
+
+    <!-- Audio para TTS del servidor (fallback para WebOS) -->
+    <audio id="tts-audio" preload="none"></audio>
 
     <script>
-        // Actualizar fecha y hora
+        // ============================================================
+        // AUDIO - Compatible con WebOS (LG TV) y navegadores modernos
+        // ============================================================
+        let audioActivado = false;
+        let audioCtx = null;
+        const ttsAudio = document.getElementById('tts-audio');
+
+        // --- Activar audio (necesita interacción del usuario en Chrome) ---
+        function activarAudio() {
+            if (audioActivado) return;
+
+            try {
+                // Crear o reanudar AudioContext
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                // Desbloquear <audio> reproduciéndolo brevemente
+                ttsAudio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+                ttsAudio.play().then(() => {
+                    ttsAudio.pause();
+                    ttsAudio.currentTime = 0;
+                }).catch(() => {});
+
+                // Desbloquear speechSynthesis con utterance vacía
+                if (window.speechSynthesis) {
+                    const silencio = new SpeechSynthesisUtterance('');
+                    silencio.volume = 0;
+                    window.speechSynthesis.speak(silencio);
+                }
+
+                audioActivado = true;
+                document.getElementById('audio-banner').style.display = 'none';
+                console.log('[Audio] Activado correctamente');
+
+                // Remover listeners
+                document.removeEventListener('click', activarAudio);
+                document.removeEventListener('touchstart', activarAudio);
+                document.removeEventListener('keydown', activarAudio);
+            } catch(e) {
+                console.warn('[Audio] Error al activar:', e);
+            }
+        }
+
+        // --- Registrar listeners para activar audio con interacción ---
+        document.addEventListener('click', activarAudio);
+        document.addEventListener('touchstart', activarAudio);
+        document.addEventListener('keydown', activarAudio);
+
+        // --- Intentar auto-activar (funciona en WebOS y algunos navegadores) ---
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'running') {
+                // AudioContext arrancó sin restricciones (WebOS, algunos navegadores)
+                audioActivado = true;
+                console.log('[Audio] Auto-activado (sin restricciones)');
+            } else {
+                audioCtx.resume().then(() => {
+                    if (audioCtx.state === 'running') {
+                        audioActivado = true;
+                        console.log('[Audio] Auto-activado después de resume()');
+                    }
+                }).catch(() => {});
+            }
+        } catch(e) {}
+
+        // Mostrar banner si audio no se activó después de 3 segundos
+        setTimeout(() => {
+            if (!audioActivado) {
+                document.getElementById('audio-banner').style.display = 'block';
+                console.log('[Audio] Mostrando banner - se requiere interacción');
+            }
+        }, 3000);
+
+        // Pre-cargar voces de speechSynthesis
+        if (window.speechSynthesis) {
+            window.speechSynthesis.getVoices();
+            window.speechSynthesis.addEventListener('voiceschanged', () => {
+                console.log('[Audio] Voces cargadas:', window.speechSynthesis.getVoices().length);
+            });
+        }
+
+        // --- Generar beep con Web Audio API ---
+        function generarBeep() {
+            if (!audioCtx || audioCtx.state !== 'running') return Promise.resolve();
+            return new Promise((resolve) => {
+                try {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(1100, audioCtx.currentTime + 0.15);
+                    osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.30);
+
+                    gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.45);
+
+                    osc.start(audioCtx.currentTime);
+                    osc.stop(audioCtx.currentTime + 0.45);
+                    osc.onended = resolve;
+                } catch(e) {
+                    resolve();
+                }
+            });
+        }
+
+        // --- Reproducir voz con speechSynthesis ---
+        function hablarConSpeechSynthesis(texto) {
+            return new Promise((resolve, reject) => {
+                if (!window.speechSynthesis) { reject('no disponible'); return; }
+
+                window.speechSynthesis.cancel();
+
+                const utter = new SpeechSynthesisUtterance(texto);
+                utter.lang = 'es-CO';
+                utter.rate = 0.85;
+                utter.pitch = 1.0;
+                utter.volume = 1.0;
+
+                const voices = window.speechSynthesis.getVoices();
+                const vozEs = voices.find(v => v.lang === 'es-CO') ||
+                              voices.find(v => v.lang === 'es-MX') ||
+                              voices.find(v => v.lang.startsWith('es'));
+                if (vozEs) utter.voice = vozEs;
+
+                utter.onend = resolve;
+                utter.onerror = (e) => {
+                    console.warn('[Audio] speechSynthesis error:', e.error);
+                    reject(e.error);
+                };
+
+                window.speechSynthesis.speak(utter);
+                console.log('[Audio] Hablando con speechSynthesis');
+
+                // Timeout de seguridad: si no termina en 10s, resolver igual
+                setTimeout(resolve, 10000);
+            });
+        }
+
+        // --- Reproducir voz TTS desde el servidor (fallback para WebOS) ---
+        function reproducirTTSServidor(texto) {
+            return new Promise((resolve) => {
+                const ttsUrl = '{{ route("pantalla.tts") }}?texto=' + encodeURIComponent(texto);
+                console.log('[Audio] Usando TTS servidor:', ttsUrl);
+
+                ttsAudio.oncanplaythrough = function() {
+                    ttsAudio.oncanplaythrough = null;
+                    ttsAudio.play().then(resolve).catch(() => resolve());
+                };
+                ttsAudio.onerror = function() {
+                    console.warn('[Audio] Error cargando TTS servidor');
+                    resolve();
+                };
+                ttsAudio.src = ttsUrl;
+                ttsAudio.load();
+
+                // Timeout de seguridad
+                setTimeout(resolve, 8000);
+            });
+        }
+
+        // ============================================================
+        // COLA DE ANUNCIOS - Garantiza que todos los turnos suenen
+        // incluso si 2 módulos llaman al tiempo
+        // ============================================================
+        let colaAnuncios = [];
+        let anunciando = false;
+        let turnosAnunciados = new Set();
+
+        // Pre-cargar IDs de turnos ya existentes (no anunciar al cargar)
+        @if($turnoActual)
+            turnosAnunciados.add({{ $turnoActual->id }});
+        @endif
+        @foreach($ultimosTurnos as $turno)
+            turnosAnunciados.add({{ $turno->id }});
+        @endforeach
+
+        function encolarAnuncio(turno) {
+            if (turnosAnunciados.has(turno.id)) return;
+            turnosAnunciados.add(turno.id);
+            colaAnuncios.push(turno);
+            console.log('[Cola] Turno encolado:', turno.codigo, '| Cola:', colaAnuncios.length);
+            procesarColaAnuncios();
+        }
+
+        async function procesarColaAnuncios() {
+            if (anunciando || colaAnuncios.length === 0) return;
+
+            anunciando = true;
+
+            while (colaAnuncios.length > 0) {
+                const turno = colaAnuncios.shift();
+                console.log('[Cola] Procesando turno:', turno.codigo, '| Restantes:', colaAnuncios.length);
+
+                // Mostrar este turno en la pantalla mientras se anuncia
+                mostrarTurnoEnDisplay(turno);
+
+                const modulo = turno.caja ? turno.caja.numero : null;
+
+                try {
+                    await anunciarTurnoAsync(turno.codigo, modulo);
+                } catch(e) {
+                    console.error('[Cola] Error anunciando:', e);
+                }
+
+                // Pausa entre anuncios para que no se mezclen
+                if (colaAnuncios.length > 0) {
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+            }
+
+            anunciando = false;
+        }
+
+        // --- Mostrar turno en el display central ---
+        function mostrarTurnoEnDisplay(turno) {
+            const displayEl = document.getElementById('turno-actual-display');
+            const esperandoEl = document.getElementById('turno-esperando');
+
+            if (displayEl) displayEl.style.display = '';
+            if (esperandoEl) esperandoEl.style.display = 'none';
+
+            const turnoActualEl = document.getElementById('turno-actual');
+            const cajaActualEl = document.getElementById('caja-actual');
+            const nombreActualEl = document.getElementById('nombre-actual');
+            const tramiteActualEl = document.getElementById('tramite-actual');
+            const prioridadEl = document.getElementById('prioridad-actual');
+
+            if (turnoActualEl) turnoActualEl.textContent = turno.codigo;
+            if (cajaActualEl) cajaActualEl.textContent = turno.caja ? turno.caja.numero : '-';
+            if (nombreActualEl) nombreActualEl.textContent = turno.nombre_completo || '';
+            if (tramiteActualEl) tramiteActualEl.textContent = turno.tipo_tramite ? turno.tipo_tramite.nombre : '-';
+
+            if (prioridadEl) {
+                if (turno.prioridad === 'embarazada') {
+                    prioridadEl.innerHTML = '<span class="inline-flex items-center px-4 py-1 rounded-full text-[0.75vw] font-semibold bg-pink-100 text-pink-800">Preferencial - Embarazada</span>';
+                } else if (turno.prioridad === 'tercera_edad') {
+                    prioridadEl.innerHTML = '<span class="inline-flex items-center px-4 py-1 rounded-full text-[0.75vw] font-semibold bg-amber-100 text-amber-800">Preferencial - Adulto Mayor</span>';
+                } else if (turno.prioridad === 'discapacidad') {
+                    prioridadEl.innerHTML = '<span class="inline-flex items-center px-4 py-1 rounded-full text-[0.75vw] font-semibold bg-blue-100 text-blue-800">Preferencial - Discapacidad</span>';
+                } else {
+                    prioridadEl.innerHTML = '';
+                }
+            }
+        }
+
+        // --- Anunciar turno (async - espera a que termine) ---
+        async function anunciarTurnoAsync(codigo, modulo) {
+            const codigoHablado = codigo.replace(/([A-Za-z]+)([0-9]+)/, '$1 $2');
+            let texto = `Turno ${codigoHablado}`;
+            if (modulo !== null && modulo !== undefined) {
+                texto += `, diríjase al módulo ${modulo}`;
+            }
+
+            console.log('[Audio] Anunciando:', texto, '| audioActivado:', audioActivado);
+
+            await generarBeep();
+            await new Promise(r => setTimeout(r, 300));
+
+            try {
+                await hablarConSpeechSynthesis(texto);
+            } catch(e) {
+                console.log('[Audio] Fallback a TTS servidor');
+                await reproducirTTSServidor(texto);
+            }
+        }
+
+        // ============================================================
+        // RELOJ
+        // ============================================================
         function updateDateTime() {
             const now = new Date();
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -130,102 +520,118 @@
         updateDateTime();
         setInterval(updateDateTime, 1000);
 
-        // Variables para detectar cambios
-        let ultimoTurnoCodigo = '{{ $turnoActual?->codigo ?? "" }}';
-        let actualizandoVisual = false;
-
-        // Actualizar turnos desde el servidor
+        // ============================================================
+        // POLLING DE TURNOS
+        // ============================================================
         async function actualizarTurnos() {
             try {
                 const response = await fetch('{{ route("pantalla.actualizar") }}');
                 const data = await response.json();
 
-                console.log('Datos recibidos:', data); // Debug
+                // Detectar TODOS los turnos nuevos llamados (resuelve el problema
+                // de 2 módulos llamando al tiempo)
+                if (data.turnosLlamados && data.turnosLlamados.length > 0) {
+                    // Ordenar por hora_llamado ASC para anunciar en orden cronológico
+                    const ordenados = [...data.turnosLlamados].sort((a, b) => {
+                        return new Date(a.hora_llamado) - new Date(b.hora_llamado);
+                    });
+                    ordenados.forEach(turno => {
+                        encolarAnuncio(turno);
+                    });
+                }
 
-                // Actualizar turno actual
-                if (data.turnoActual) {
-                    const nuevoTurnoCodigo = data.turnoActual.codigo;
-
-                    // Si cambió el turno, reproducir sonido y animar
-                    if (nuevoTurnoCodigo !== ultimoTurnoCodigo && ultimoTurnoCodigo !== '') {
-                        reproducirSonido();
-                        mostrarAnimacionNuevoTurno();
+                // Actualizar display del turno actual (solo si no hay anuncio en curso)
+                if (!anunciando) {
+                    if (data.turnoActual) {
+                        mostrarTurnoEnDisplay(data.turnoActual);
+                    } else {
+                        // Mostrar estado de espera
+                        const displayEl = document.getElementById('turno-actual-display');
+                        const esperandoEl = document.getElementById('turno-esperando');
+                        if (displayEl) displayEl.style.display = 'none';
+                        if (esperandoEl) esperandoEl.style.display = '';
                     }
-
-                    ultimoTurnoCodigo = nuevoTurnoCodigo;
-
-                    // Actualizar DOM solo si los elementos existen
-                    const turnoActualEl = document.getElementById('turno-actual');
-                    const cajaActualEl = document.getElementById('caja-actual');
-                    const tramiteActualEl = document.getElementById('tramite-actual');
-                    const nombreActualEl = document.getElementById('nombre-actual');
-
-                    if (turnoActualEl) turnoActualEl.textContent = data.turnoActual.codigo;
-                    if (nombreActualEl) nombreActualEl.textContent = data.turnoActual.nombre_completo || '';
-                    if (cajaActualEl) cajaActualEl.textContent = data.turnoActual.caja ? data.turnoActual.caja.numero : '-';
-                    if (tramiteActualEl) tramiteActualEl.textContent = data.turnoActual.tipo_tramite ? data.turnoActual.tipo_tramite.nombre : '-';
-
-                    // Actualizar badge de prioridad
-                    const prioridadEl = document.getElementById('prioridad-actual');
-                    if (prioridadEl) {
-                        if (data.turnoActual.prioridad === 'embarazada') {
-                            prioridadEl.innerHTML = '<span class="inline-flex items-center px-4 py-2 rounded-full text-lg font-semibold bg-pink-100 text-pink-800">🤰 Preferencial - Embarazada</span>';
-                        } else if (data.turnoActual.prioridad === 'tercera_edad') {
-                            prioridadEl.innerHTML = '<span class="inline-flex items-center px-4 py-2 rounded-full text-lg font-semibold bg-amber-100 text-amber-800">🧓 Preferencial - Adulto Mayor</span>';
-                        } else {
-                            prioridadEl.innerHTML = '';
-                        }
-                    }
-
-                    // Si la página muestra "en espera", recargar para mostrar el turno
-                    if (!turnoActualEl) {
-                        window.location.reload();
-                    }
-                } else {
-                    // No hay turno actual
-                    ultimoTurnoCodigo = '';
                 }
 
                 // Actualizar últimos turnos
-                if (data.ultimosTurnos && data.ultimosTurnos.length > 0) {
+                if (data.ultimosTurnos) {
                     const container = document.getElementById('ultimos-turnos');
                     container.innerHTML = '';
 
-                    data.ultimosTurnos.forEach(turno => {
-                        const div = document.createElement('div');
-                        div.className = 'bg-white bg-opacity-20 rounded-xl p-6 text-center';
-                        let prioridadBadge = '';
-                        if (turno.prioridad === 'embarazada') {
-                            prioridadBadge = '<p class="text-sm mb-1"><span class="bg-pink-500 text-white px-2 py-0.5 rounded-full">🤰 Preferencial</span></p>';
-                        } else if (turno.prioridad === 'tercera_edad') {
-                            prioridadBadge = '<p class="text-sm mb-1"><span class="bg-amber-500 text-white px-2 py-0.5 rounded-full">🧓 Preferencial</span></p>';
-                        }
-                        div.innerHTML = `
-                            <p class="text-5xl font-bold mb-2">${turno.codigo}</p>
-                            ${prioridadBadge}
-                            <p class="text-base opacity-80 mb-1">${turno.nombre_completo || ''}</p>
-                            <p class="text-lg opacity-90">Caja ${turno.caja ? turno.caja.numero : '-'}</p>
-                        `;
-                        container.appendChild(div);
-                    });
+                    if (data.ultimosTurnos.length > 0) {
+                        data.ultimosTurnos.forEach(turno => {
+                            const div = document.createElement('div');
+                            div.className = 'turno-card slide-in';
+
+                            let prioridadBadge = '';
+                            if (turno.prioridad === 'embarazada') {
+                                prioridadBadge = '<span class="inline-block text-[0.7vw] bg-pink-500 text-white px-2 py-0.5 rounded-full mt-1">Preferencial</span>';
+                            } else if (turno.prioridad === 'tercera_edad') {
+                                prioridadBadge = '<span class="inline-block text-[0.7vw] bg-amber-500 text-white px-2 py-0.5 rounded-full mt-1">Preferencial</span>';
+                            } else if (turno.prioridad === 'discapacidad') {
+                                prioridadBadge = '<span class="inline-block text-[0.7vw] bg-blue-400 text-white px-2 py-0.5 rounded-full mt-1">Preferencial</span>';
+                            }
+
+                            let nombreHtml = turno.nombre_completo ? `<p class="text-[0.8vw] opacity-60 mt-1 truncate">${turno.nombre_completo}</p>` : '';
+
+                            div.innerHTML = `
+                                <div class="flex items-center justify-between">
+                                    <div class="text-left flex-1">
+                                        <p class="text-[2.2vw] font-bold leading-none">${turno.codigo}</p>
+                                        ${prioridadBadge}
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-[0.7vw] opacity-60 uppercase">Caja</p>
+                                        <p class="text-[2vw] font-bold leading-none">${turno.caja ? turno.caja.numero : '-'}</p>
+                                    </div>
+                                </div>
+                                ${nombreHtml}
+                            `;
+                            container.appendChild(div);
+                        });
+                    } else {
+                        container.innerHTML = '<div class="flex items-center justify-center h-full"><p class="text-[1.1vw] opacity-40 text-center">Sin turnos</p></div>';
+                    }
+                }
+
+                // Actualizar próximos turnos
+                if (data.proximosTurnos) {
+                    const container = document.getElementById('proximos-turnos');
+                    container.innerHTML = '';
+
+                    if (data.proximosTurnos.length > 0) {
+                        data.proximosTurnos.forEach(turno => {
+                            const div = document.createElement('div');
+                            div.className = 'turno-card slide-in';
+
+                            let prioridadBadge = '';
+                            if (turno.prioridad === 'embarazada') {
+                                prioridadBadge = '<span class="inline-block text-[0.7vw] bg-pink-500 text-white px-2 py-0.5 rounded-full mt-1">Preferencial</span>';
+                            } else if (turno.prioridad === 'tercera_edad') {
+                                prioridadBadge = '<span class="inline-block text-[0.7vw] bg-amber-500 text-white px-2 py-0.5 rounded-full mt-1">Preferencial</span>';
+                            } else if (turno.prioridad === 'discapacidad') {
+                                prioridadBadge = '<span class="inline-block text-[0.7vw] bg-blue-400 text-white px-2 py-0.5 rounded-full mt-1">Preferencial</span>';
+                            }
+
+                            let nombreHtml = turno.nombre_completo ? `<p class="text-[0.8vw] opacity-60 mt-1 truncate">${turno.nombre_completo}</p>` : '';
+
+                            div.innerHTML = `
+                                <div class="flex items-center justify-between">
+                                    <div class="text-left flex-1">
+                                        <p class="text-[2.2vw] font-bold leading-none">${turno.codigo}</p>
+                                        ${prioridadBadge}
+                                    </div>
+                                </div>
+                                ${nombreHtml}
+                            `;
+                            container.appendChild(div);
+                        });
+                    } else {
+                        container.innerHTML = '<div class="flex items-center justify-center h-full"><p class="text-[1.1vw] opacity-40 text-center">Sin turnos en espera</p></div>';
+                    }
                 }
             } catch (error) {
                 console.error('Error al actualizar turnos:', error);
-            }
-        }
-
-        function reproducirSonido() {
-            const audio = document.getElementById('notification-sound');
-            audio.play().catch(e => console.log('No se pudo reproducir el sonido:', e));
-        }
-
-        function mostrarAnimacionNuevoTurno() {
-            const turnoActualEl = document.getElementById('turno-actual');
-            if (turnoActualEl && turnoActualEl.parentElement) {
-                turnoActualEl.parentElement.parentElement.parentElement.style.animation = 'none';
-                setTimeout(() => {
-                    turnoActualEl.parentElement.parentElement.parentElement.style.animation = 'pulse 2s ease-in-out infinite';
-                }, 10);
             }
         }
 
@@ -235,9 +641,13 @@
         // Primera actualización inmediata
         setTimeout(actualizarTurnos, 1000);
 
-        // Recargar página completamente cada 5 minutos para evitar memory leaks
-        setTimeout(() => {
-            window.location.reload();
+        // Recargar página cada 5 minutos (solo si no hay anuncio en curso)
+        setTimeout(function recargar() {
+            if (!anunciando && colaAnuncios.length === 0) {
+                window.location.reload();
+            } else {
+                setTimeout(recargar, 30000);
+            }
         }, 300000);
     </script>
 </body>

@@ -9,4 +9,4 @@ echo.
 echo [*] Iniciando servidor Laravel...
 echo.
 cd /d "%~dp0"
-php artisan serve --host=127.0.0.1 --port=8000
+php artisan serve --host=0.0.0.0 --port=8000

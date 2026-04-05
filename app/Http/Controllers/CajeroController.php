@@ -19,17 +19,26 @@ class CajeroController extends Controller
             return redirect()->route('dashboard')->with('error', 'No tiene una caja asignada. Contacte al administrador.');
         }
 
-        // Turno actual en atención en esta caja
+        // Turno actual en atención en esta caja (puede ser de otro cajero del turno anterior)
         $turnoActual = Turno::where('caja_id', $caja->id)
             ->where('estado', 'en_atencion')
-            ->with('tipoTramite')
+            ->with('tipoTramite', 'cajero')
             ->first();
 
-        // Cola de turnos pendientes
-        $turnosPendientes = Turno::pendientes()
-            ->with('tipoTramite')
-            ->limit(10)
-            ->get();
+        // Tramites que este cajero puede atender
+        $tramiteIds = $cajero->tiposTramite()->pluck('tipos_tramite.id')->toArray();
+
+        // Cola de turnos pendientes del día (solo de tramites asignados)
+        $query = Turno::hoy()->pendientes()->with('tipoTramite');
+
+        if (!empty($tramiteIds)) {
+            $query->whereIn('tipo_tramite_id', $tramiteIds);
+        } else {
+            // Sin tramites asignados = no puede atender nada
+            $query->whereRaw('1 = 0');
+        }
+
+        $turnosPendientes = $query->limit(10)->get();
 
         // Estadísticas del día
         $turnosAtendidosHoy = Turno::where('user_id', $cajero->id)
@@ -75,8 +84,20 @@ class CajeroController extends Controller
             ], 400);
         }
 
-        // Obtener siguiente turno pendiente
-        $turno = Turno::pendientes()->first();
+        // Tramites que este cajero puede atender
+        $tramiteIds = $cajero->tiposTramite()->pluck('tipos_tramite.id')->toArray();
+
+        if (empty($tramiteIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tiene tramites asignados. Contacte al administrador.'
+            ], 400);
+        }
+
+        // Obtener siguiente turno pendiente del día (solo de tramites asignados)
+        $turno = Turno::hoy()->pendientes()
+            ->whereIn('tipo_tramite_id', $tramiteIds)
+            ->first();
 
         if (!$turno) {
             return response()->json([
@@ -103,11 +124,70 @@ class CajeroController extends Controller
         ]);
     }
 
-    public function repetirTurno($id)
+    public function llamarTurnoEspecifico($id)
     {
+        $cajero = Auth::user();
+        $caja = $cajero->caja;
+
+        // Verificar que no haya turno en atención
+        $turnoEnAtencion = Turno::where('caja_id', $caja->id)
+            ->where('estado', 'en_atencion')
+            ->first();
+
+        if ($turnoEnAtencion) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Debe finalizar el turno actual antes de llamar otro'
+            ], 400);
+        }
+
         $turno = Turno::findOrFail($id);
 
-        $this->authorize('call', $turno);
+        if ($turno->estado !== 'pendiente') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Este turno ya no está pendiente'
+            ], 400);
+        }
+
+        // Verificar que el cajero tenga asignado este tipo de tramite
+        $tramiteIds = $cajero->tiposTramite()->pluck('tipos_tramite.id')->toArray();
+        if (!in_array($turno->tipo_tramite_id, $tramiteIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tiene permiso para atender este tipo de tramite'
+            ], 400);
+        }
+
+        $turno->update([
+            'estado' => 'en_atencion',
+            'caja_id' => $caja->id,
+            'user_id' => $cajero->id,
+            'hora_llamado' => now(),
+            'hora_inicio_atencion' => now()
+        ]);
+
+        event(new \App\Events\TurnoLlamado($turno));
+
+        return response()->json([
+            'success' => true,
+            'turno' => $turno->load('tipoTramite')
+        ]);
+    }
+
+    public function repetirTurno($id)
+    {
+        $cajero = Auth::user();
+        $turno = Turno::findOrFail($id);
+
+        $esSuTurno = $turno->user_id == $cajero->id || $turno->caja_id == $cajero->caja_id;
+
+        if ($cajero->rol !== 'admin' && !$esSuTurno) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tiene permiso para repetir este turno'
+            ], 403);
+        }
 
         // Broadcast evento para repetir llamado
         event(new \App\Events\TurnoLlamado($turno));
@@ -124,7 +204,12 @@ class CajeroController extends Controller
         $cajero = Auth::user();
         $turno = Turno::findOrFail($id);
 
-        $this->authorize('attend', $turno);
+        if ($turno->user_id != $cajero->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tiene permiso para atender este turno'
+            ], 403);
+        }
 
         if ($turno->estado !== 'llamado') {
             return response()->json([
@@ -146,9 +231,25 @@ class CajeroController extends Controller
 
     public function finalizarAtencion(Request $request, $id)
     {
+        $cajero = Auth::user();
         $turno = Turno::findOrFail($id);
 
-        $this->authorize('finish', $turno);
+        $esAdmin = $cajero->rol === 'admin';
+        $esSuTurno = $turno->user_id == $cajero->id || $turno->caja_id == $cajero->caja_id;
+
+        if ($turno->estado !== 'en_atencion') {
+            return response()->json([
+                'success' => false,
+                'message' => 'El turno no está en atención'
+            ], 400);
+        }
+
+        if (!$esAdmin && !$esSuTurno) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tiene permiso para finalizar este turno'
+            ], 403);
+        }
 
         $request->validate([
             'observaciones' => 'nullable|string|max:500'
@@ -159,12 +260,19 @@ class CajeroController extends Controller
             ? $turno->hora_inicio_atencion->diffInSeconds($horaFin)
             : 0;
 
-        $turno->update([
+        $updateData = [
             'estado' => 'atendido',
             'hora_fin_atencion' => $horaFin,
             'tiempo_atencion' => $tiempoAtencion,
             'observaciones' => $request->observaciones
-        ]);
+        ];
+
+        // Si otro cajero de la misma caja finaliza el turno, actualizar user_id
+        if ($turno->user_id != $cajero->id) {
+            $updateData['user_id'] = $cajero->id;
+        }
+
+        $turno->update($updateData);
 
         return response()->json([
             'success' => true,
@@ -174,9 +282,18 @@ class CajeroController extends Controller
 
     public function cancelarTurno(Request $request, $id)
     {
+        $cajero = Auth::user();
         $turno = Turno::findOrFail($id);
 
-        $this->authorize('cancel', $turno);
+        $esAdmin = $cajero->rol === 'admin';
+        $esSuTurno = $turno->user_id == $cajero->id || $turno->caja_id == $cajero->caja_id;
+
+        if (!$esAdmin && (!$esSuTurno || !in_array($turno->estado, ['llamado', 'en_atencion']))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tiene permiso para cancelar este turno'
+            ], 403);
+        }
 
         $request->validate([
             'motivo' => 'required|string|min:10|max:500'
@@ -196,9 +313,18 @@ class CajeroController extends Controller
 
     public function transferirTurno(Request $request, $id)
     {
+        $cajero = Auth::user();
         $turno = Turno::findOrFail($id);
 
-        $this->authorize('transfer', $turno);
+        $esAdmin = $cajero->rol === 'admin';
+        $esSuTurno = $turno->user_id == $cajero->id || $turno->caja_id == $cajero->caja_id;
+
+        if (!$esAdmin && (!$esSuTurno || !in_array($turno->estado, ['llamado', 'en_atencion']))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tiene permiso para transferir este turno'
+            ], 403);
+        }
 
         $request->validate([
             'caja_id' => 'required|exists:cajas,id,activa,1'

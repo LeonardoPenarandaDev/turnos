@@ -49,7 +49,7 @@ class StoreTurnoRequest extends FormRequest
                 'min:3',
                 'regex:/^[\pL\s\-\'\.]+$/u', // Solo letras, espacios, guiones y apóstrofes
             ],
-            'prioridad' => 'required|in:normal,embarazada,tercera_edad',
+            'prioridad' => 'required|in:normal,embarazada,tercera_edad,discapacidad',
             'tipo_tramite_id' => [
                 'required',
                 'exists:tipos_tramite,id,activo,1'

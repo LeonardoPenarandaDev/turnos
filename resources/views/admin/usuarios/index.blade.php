@@ -30,6 +30,7 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Caja Asignada</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tramites Asignados</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
                             </tr>
                         </thead>
@@ -57,8 +58,19 @@
                                     <td class="px-6 py-4 text-sm text-gray-500">
                                         {{ $usuario->caja ? 'Caja ' . $usuario->caja->numero : '-' }}
                                     </td>
+                                    <td class="px-6 py-4 text-sm text-gray-500">
+                                        @if($usuario->tiposTramite->count() > 0)
+                                            <div class="flex flex-wrap gap-1">
+                                                @foreach($usuario->tiposTramite as $tramite)
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">{{ $tramite->nombre }}</span>
+                                                @endforeach
+                                            </div>
+                                        @else
+                                            <span class="text-red-500 text-xs">Sin tramites</span>
+                                        @endif
+                                    </td>
                                     <td class="px-6 py-4 text-sm font-medium">
-                                        <button onclick="editarUsuario({{ $usuario->id }}, '{{ addslashes($usuario->name) }}', '{{ addslashes($usuario->email) }}', '{{ $usuario->rol }}', '{{ $usuario->caja_id }}')"
+                                        <button onclick="editarUsuario({{ $usuario->id }}, '{{ addslashes($usuario->name) }}', '{{ addslashes($usuario->email) }}', '{{ $usuario->rol }}', '{{ $usuario->caja_id }}', {{ json_encode($usuario->tiposTramite->pluck('id')) }})"
                                             class="text-indigo-600 hover:text-indigo-900 mr-3">Editar</button>
                                         @if($usuario->id !== auth()->id())
                                             <form method="POST" action="{{ route('admin.usuarios.destroy', $usuario->id) }}" class="inline"
@@ -112,6 +124,19 @@
                         @endforeach
                     </select>
                 </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tramites que puede atender</label>
+                    <div class="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-3 space-y-2">
+                        @foreach($tiposTramite as $tramite)
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" name="tipos_tramite[]" value="{{ $tramite->id }}"
+                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                <span class="text-sm text-gray-700">{{ $tramite->nombre }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Si no selecciona ninguno, el cajero no podra atender turnos.</p>
+                </div>
                 <div class="flex justify-end space-x-3">
                     <button type="button" onclick="document.getElementById('modal-crear-usuario').classList.add('hidden')"
                         class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded">Cancelar</button>
@@ -156,6 +181,19 @@
                         @endforeach
                     </select>
                 </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tramites que puede atender</label>
+                    <div class="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-3 space-y-2" id="edit-tramites-container">
+                        @foreach($tiposTramite as $tramite)
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" name="tipos_tramite[]" value="{{ $tramite->id }}"
+                                    class="edit-tramite-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                <span class="text-sm text-gray-700">{{ $tramite->nombre }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Si no selecciona ninguno, el cajero no podra atender turnos.</p>
+                </div>
                 <div class="flex justify-end space-x-3">
                     <button type="button" onclick="document.getElementById('modal-editar-usuario').classList.add('hidden')"
                         class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded">Cancelar</button>
@@ -167,12 +205,18 @@
 
     @push('scripts')
     <script>
-        function editarUsuario(id, name, email, rol, cajaId) {
-            document.getElementById('form-editar-usuario').action = `/admin/usuarios/${id}`;
+        function editarUsuario(id, name, email, rol, cajaId, tramiteIds) {
+            document.getElementById('form-editar-usuario').action = `{{ url('admin/usuarios') }}/${id}`;
             document.getElementById('edit-user-name').value = name;
             document.getElementById('edit-user-email').value = email;
             document.getElementById('edit-user-rol').value = rol;
             document.getElementById('edit-user-caja').value = cajaId || '';
+
+            // Marcar/desmarcar checkboxes de tramites
+            document.querySelectorAll('.edit-tramite-checkbox').forEach(cb => {
+                cb.checked = tramiteIds.includes(parseInt(cb.value));
+            });
+
             document.getElementById('modal-editar-usuario').classList.remove('hidden');
         }
     </script>
